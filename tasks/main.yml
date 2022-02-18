@@ -1,0 +1,35 @@
+---
+# tasks file for gitlab-runner
+
+- include: ./gitlab-runner-source/debian.yml
+  when: ansible_os_family == 'Debian'
+
+- include: ./gitlab-runner-source/redhat.yml
+  when: ansible_os_family == 'RedHat'
+
+- name: "Install gitlab runner version {{ gitlab_runner_version }}"
+  package:
+    name: "gitlab-runner={{ gitlab_runner_version }}"
+    state: present
+  when: gitlab_runner_version is defined
+
+- name: "Install gitlab runner latest version"
+  package:
+    name: "gitlab-runner"
+    state: present
+  when: gitlab_runner_version is undefined
+
+- name: "Check if runner is registered"
+  shell: gitlab-runner verify -n {{ item.name }} -u {{ gitlab_url }} || echo "NOT_REGISTERED"
+  with_items: "{{ gitlab_runners | default([]) }}"
+  when: gitlab_runners is defined
+  
+  register: gitlab_runner_registered
+  changed_when: "'NOT_REGISTERED' in gitlab_runner_registered.stdout"
+
+- name: "Register gitlab runner"
+  shell: gitlab-runner register --non-interactive --name {{ item.name }} -u {{ gitlab_url }} -r {{ item.token }} --executor {{ item.executor }}
+  with_items: "{{ gitlab_runners | default([]) }}"
+  when: gitlab_runners is defined and gitlab_runner_registered.results[runner_index].changed
+  loop_control:
+    index_var: runner_index

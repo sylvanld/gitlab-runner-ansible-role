@@ -1,0 +1,5 @@
+- name: Add apt repository for gitlab runner
+  get_url:
+    url: https://packages.gitlab.com/install/repositories/runner/gitlab-runner/config_file.repo?os={{ ansible_distribution }}&dist={{ ansible_distribution_major_version }}&source=script
+    dest: /etc/yum.repos.d/runner_gitlab-runner.repo
+    mode: '0644'
